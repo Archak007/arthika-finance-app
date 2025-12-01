@@ -50,7 +50,7 @@ export default function Dashboard() {
     setIncomes(safeLoadArray("incomes"));
     setExpenses(safeLoadArray("expenses"));
     setBills(safeLoadArray("bills"));
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     function handleClickOutside(e) {
