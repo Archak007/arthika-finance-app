@@ -1,342 +1,122 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   Tooltip,
   Legend,
-  ResponsiveContainer,
 } from "recharts";
 import Income from "./income";
 import Expense from "./expense";
 import Balance from "./balance";
+import Transaction from "./transaction";
 
-function ManageBills({ bills, setBills, darkMode }) {
-  const [form, setForm] = useState({
-    name: "",
-    amount: "",
-    dueDate: "",
-    category: "Other",
-  });
-
-  const categories = [
-    "Mobile Recharge",
-    "Credit Card",
-    "Electricity",
-    "Rent",
-    "Internet",
-    "Water",
-    "Other",
-  ];
-
-  const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleAddBill = (e) => {
-    e.preventDefault();
-    if (!form.name || !form.amount || !form.dueDate) {
-      alert("Please fill name, amount and due date.");
-      return;
-    }
-
-    const amountNum = parseFloat(form.amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      alert("Amount must be a positive number.");
-      return;
-    }
-
-    const newBill = {
-      id: Date.now(),
-      name: form.name,
-      amount: amountNum,
-      dueDate: form.dueDate,
-      category: form.category,
-    };
-
-    const updated = [...bills, newBill];
-    setBills(updated);
-    localStorage.setItem("bills", JSON.stringify(updated));
-
-    setForm({
-      name: "",
-      amount: "",
-      dueDate: "",
-      category: "Other",
-    });
-  };
-
-  const handleBillFieldChange = (id, field, value) => {
-    const updated = bills.map((b) =>
-      b.id === id
-        ? { ...b, [field]: field === "amount" ? Number(value) || 0 : value }
-        : b
-    );
-    setBills(updated);
-    localStorage.setItem("bills", JSON.stringify(updated));
-  };
-
-  const handleDeleteBill = (id) => {
-    const updated = bills.filter((b) => b.id !== id);
-    setBills(updated);
-    localStorage.setItem("bills", JSON.stringify(updated));
-  };
-
-  return (
-    <div
-      className={`p-6 rounded-lg shadow-lg ${
-        darkMode
-          ? "bg-gradient-to-br from-gray-900 via-blue-900 to-violet-900 text-white"
-          : "bg-gray-100 text-gray-900"
-      }`}
-    >
-      <h2 className="text-2xl font-bold mb-4">Manage Bills</h2>
-
-      <form
-        onSubmit={handleAddBill}
-        className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"
-      >
-        <input
-          type="text"
-          placeholder="Bill Name (e.g. Rent)"
-          value={form.name}
-          onChange={(e) => handleChange("name", e.target.value)}
-          className="p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="number"
-          placeholder="Amount"
-          value={form.amount}
-          onChange={(e) => handleChange("amount", e.target.value)}
-          className="p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="date"
-          value={form.dueDate}
-          onChange={(e) => handleChange("dueDate", e.target.value)}
-          className="p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-400"
-        />
-        <div className="flex gap-2">
-          <select
-            value={form.category}
-            onChange={(e) => handleChange("category", e.target.value)}
-            className="flex-1 p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-400"
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
-          >
-            + Add
-          </button>
-        </div>
-      </form>
-
-      {bills.length === 0 ? (
-        <p className="text-sm opacity-80">
-          No bills added yet. Start by adding a bill above.
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-500/40">
-                <th className="text-left py-2 pr-2">Name</th>
-                <th className="text-left py-2 pr-2">Category</th>
-                <th className="text-left py-2 pr-2">Amount (₹)</th>
-                <th className="text-left py-2 pr-2">Due Date</th>
-                <th className="text-left py-2 pr-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bills
-                .slice()
-                .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-                .map((bill) => (
-                  <tr key={bill.id} className="border-b border-gray-600/30">
-                    <td className="py-2 pr-2">
-                      <input
-                        type="text"
-                        value={bill.name}
-                        onChange={(e) =>
-                          handleBillFieldChange(bill.id, "name", e.target.value)
-                        }
-                        className="w-full bg-transparent border-b border-gray-500 focus:outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <select
-                        value={bill.category || "Other"}
-                        onChange={(e) =>
-                          handleBillFieldChange(
-                            bill.id,
-                            "category",
-                            e.target.value
-                          )
-                        }
-                        className="w-full bg-transparent border-b border-gray-500 focus:outline-none focus:border-blue-400"
-                      >
-                        {categories.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        type="number"
-                        value={bill.amount}
-                        onChange={(e) =>
-                          handleBillFieldChange(
-                            bill.id,
-                            "amount",
-                            e.target.value
-                          )
-                        }
-                        className="w-full bg-transparent border-b border-gray-500 focus:outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        type="date"
-                        value={bill.dueDate || ""}
-                        onChange={(e) =>
-                          handleBillFieldChange(
-                            bill.id,
-                            "dueDate",
-                            e.target.value
-                          )
-                        }
-                        className="bg-transparent border-b border-gray-500 focus:outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <button
-                        onClick={() => handleDeleteBill(bill.id)}
-                        className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
+function safeLoadArray(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(true);
-  const [activePage, setActivePage] = useState("Dashboard");
+
+  const [dark, setDark] = useState(true);
+  const [page, setPage] = useState("Dashboard");
+
+  const [incomes, setIncomes] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [bills, setBills] = useState([]);
+
+  const [user, setUser] = useState({
+    name: localStorage.getItem("userName") || "",
+    email: localStorage.getItem("userEmail") || "",
+    photo: localStorage.getItem("userPhoto") || "",
+  });
+
+  const [showUser, setShowUser] = useState(false);
+  const userRef = useRef(null);
 
   const totalLimit = 10000;
   const usedBalance = 4500;
 
-  const [incomeData, setIncomeData] = useState([]);
-  const [expenseData, setExpenseData] = useState([]);
-
   useEffect(() => {
-    const storedIncome = localStorage.getItem("incomes");
-    if (storedIncome) setIncomeData(JSON.parse(storedIncome));
-
-    const storedExpense = localStorage.getItem("expenses");
-    if (storedExpense) setExpenseData(JSON.parse(storedExpense));
+    setIncomes(safeLoadArray("incomes"));
+    setExpenses(safeLoadArray("expenses"));
+    setBills(safeLoadArray("bills"));
   }, []);
 
-  const totalIncome = incomeData.reduce(
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (userRef.current && !userRef.current.contains(e.target)) {
+        setShowUser(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const totalIncome = incomes.reduce(
     (sum, i) => sum + (parseFloat(i.amount) || 0),
     0
   );
-  const totalExpense = expenseData.reduce(
+  const totalExpense = expenses.reduce(
     (sum, e) => sum + (parseFloat(e.amount) || 0),
     0
   );
+  const balance = totalIncome - totalExpense;
 
   const pieData = [
     { name: "Income", value: totalIncome },
     { name: "Expense", value: totalExpense },
   ];
-  const COLORS = ["#34d399", "#f87171"];
+  const colors = ["#34d399", "#f87171"];
 
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [user, setUser] = useState({
-    name: localStorage.getItem("userName") || "",
-    email: localStorage.getItem("userEmail") || "",
-    password: localStorage.getItem("userPassword") || "",
-    photo: localStorage.getItem("userPhoto") || "",
-  });
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowUserDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const [bills, setBills] = useState([]);
-
-  useEffect(() => {
-    const storedBills = localStorage.getItem("bills");
-    if (storedBills) {
-      try {
-        setBills(JSON.parse(storedBills));
-      } catch (e) {
-        console.error("Failed to parse bills from localStorage", e);
-      }
-    }
-  }, []);
-
-  const getDaysLeft = (dueDateStr) => {
+  function daysLeft(dStr) {
     const today = new Date();
-    const due = new Date(dueDateStr);
-    const diffMs = due - today;
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  };
+    const due = new Date(dStr);
+    return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
 
-  const upcomingBills = useMemo(
+  const upcoming = useMemo(
     () =>
-      [...bills]
-        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      bills
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        )
         .slice(0, 5),
     [bills]
   );
 
-  const totalDueWeek = useMemo(
+  const dueThisWeek = useMemo(
     () =>
-      bills.reduce((sum, b) => {
-        const d = getDaysLeft(b.dueDate);
-        const amt = parseFloat(b.amount) || 0;
+      bills.reduce((sum, bill) => {
+        const d = daysLeft(bill.dueDate);
+        const amt = Number(bill.amount) || 0;
         return d >= 0 && d <= 7 ? sum + amt : sum;
       }, 0),
     [bills]
   );
 
-  const totalDueMonth = useMemo(
+  const dueThisMonth = useMemo(
     () =>
-      bills.reduce((sum, b) => {
-        const d = getDaysLeft(b.dueDate);
-        const amt = parseFloat(b.amount) || 0;
+      bills.reduce((sum, bill) => {
+        const d = daysLeft(bill.dueDate);
+        const amt = Number(bill.amount) || 0;
         return d >= 0 && d <= 30 ? sum + amt : sum;
       }, 0),
     [bills]
   );
 
-  const handlePaid = (id) => {
+  function markPaid(id) {
     const bill = bills.find((b) => b.id === id);
     if (!bill) return;
 
@@ -344,16 +124,7 @@ export default function Dashboard() {
     setBills(updatedBills);
     localStorage.setItem("bills", JSON.stringify(updatedBills));
 
-    let existingExpenses = [];
-    const storedExpense = localStorage.getItem("expenses");
-    if (storedExpense) {
-      try {
-        existingExpenses = JSON.parse(storedExpense);
-      } catch (e) {
-        console.error("Failed to parse expenses", e);
-      }
-    }
-
+    const existing = safeLoadArray("expenses");
     const newExpense = {
       id: Date.now(),
       name: bill.name,
@@ -361,155 +132,132 @@ export default function Dashboard() {
       amount: bill.amount,
       date: new Date().toISOString().slice(0, 10),
     };
-
-    const updatedExpenses = [...existingExpenses, newExpense];
+    const updatedExpenses = [...existing, newExpense];
+    setExpenses(updatedExpenses);
     localStorage.setItem("expenses", JSON.stringify(updatedExpenses));
-    setExpenseData(updatedExpenses);
-  };
+  }
 
-  const handleLogout = () => navigate("/login");
+  function saveUser() {
+    localStorage.setItem("userName", user.name);
+    localStorage.setItem("userEmail", user.email);
+    localStorage.setItem("userPhoto", user.photo);
+    alert("Saved");
+  }
+
+  function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) =>
+      setUser((prev) => ({ ...prev, photo: ev.target?.result || "" }));
+    reader.readAsDataURL(file);
+  }
 
   return (
     <div
-      className={`${
-        darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
-      } min-h-screen flex relative`}
+      className={
+        dark
+          ? "min-h-screen flex bg-gray-900 text-white"
+          : "min-h-screen flex bg-white text-gray-900"
+      }
     >
-      <div className="w-64 bg-gradient-to-b from-blue-800 to-violet-800 p-6 flex flex-col justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-8">Arthika</h2>
-          <nav className="space-y-4">
-            {["Dashboard", "Income", "Expense", "Balance", "Transaction"].map(
-              (page) => (
-                <button
-                  key={page}
-                  onClick={() => setActivePage(page)}
-                  className={`w-full text-left p-2 rounded ${
-                    activePage === page
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-blue-700/50"
-                  }`}
-                >
-                  {page}
-                </button>
-              )
-            )}
-          </nav>
-        </div>
-      </div>
+      <aside className="w-64 p-6 bg-gradient-to-b from-blue-800 to-violet-800">
+        <h2 className="text-2xl font-bold mb-8">Arthika</h2>
+        <nav className="space-y-3">
+          {["Dashboard", "Income", "Expense", "Balance", "Transaction"].map(
+            (item) => (
+              <button
+                key={item}
+                onClick={() => setPage(item)}
+                className={`w-full text-left p-2 rounded ${
+                  page === item ? "bg-blue-600" : "hover:bg-blue-700/50"
+                }`}
+              >
+                {item}
+              </button>
+            )
+          )}
+        </nav>
+      </aside>
 
-      <div
-        className="absolute top-4 right-4 flex items-center gap-4"
-        ref={dropdownRef}
-      >
-        <div className="relative">
+      <main className="flex-1 p-8 relative">
+        <div
+          className="absolute top-4 right-4 flex items-center gap-3"
+          ref={userRef}
+        >
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={dark}
+              onChange={() => setDark(!dark)}
+            />
+            <div className="w-12 h-6 bg-gray-300 rounded-full relative">
+              <div
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition ${
+                  dark ? "translate-x-6" : "translate-x-0"
+                }`}
+              />
+            </div>
+          </label>
+
           <img
             src={user.photo || "https://i.pravatar.cc/150?img=3"}
-            alt="User"
-            className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-300 shadow-sm"
-            onClick={() => setShowUserDropdown(!showUserDropdown)}
+            alt="user"
+            className="w-10 h-10 rounded-full cursor-pointer border"
+            onClick={() => setShowUser(!showUser)}
           />
 
-          {showUserDropdown && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl shadow-lg p-4 space-y-4 transition-all duration-200 z-50">
-              <div className="flex items-center gap-3">
+          {showUser && (
+            <div className="absolute right-0 top-14 w-72 bg-white dark:bg-gray-800 dark:text-white text-black rounded shadow p-4 z-50">
+              <div className="flex items-center gap-3 mb-3">
                 <img
                   src={user.photo || "https://i.pravatar.cc/150?img=3"}
-                  alt="User"
-                  className="w-12 h-12 rounded-full border-2 border-gray-300 shadow"
+                  alt="avatar"
+                  className="w-12 h-12 rounded-full"
                 />
                 <div>
-                  <p className="font-semibold">{user.name || "Your Name"}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="font-semibold">
+                    {user.name || "Your Name"}
+                  </div>
+                  <div className="text-xs opacity-70">
                     {user.email || "you@example.com"}
-                  </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Dark Mode</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={darkMode}
-                    onChange={() => setDarkMode(!darkMode)}
-                    className="sr-only"
-                  />
-                  <div className="w-12 h-6 bg-gray-300 rounded-full peer dark:bg-gray-600 transition-colors"></div>
-                  <div
-                    className={`absolute left-0 top-0 w-6 h-6 bg-white rounded-full shadow transform transition-transform ${
-                      darkMode ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  >
-                    {darkMode ? (
-                      <span className="text-yellow-400 text-sm absolute top-0.5 left-1">
-                        🌙
-                      </span>
-                    ) : (
-                      <span className="text-yellow-500 text-sm absolute top-0.5 left-0.5">
-                        ☀️
-                      </span>
-                    )}
-                  </div>
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Name"
-                  value={user.name}
-                  onChange={(e) => setUser({ ...user, name: e.target.value })}
-                  className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={user.email}
-                  onChange={(e) => setUser({ ...user, email: e.target.value })}
-                  className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={user.password}
-                  onChange={(e) =>
-                    setUser({ ...user, password: e.target.value })
-                  }
-                  className="w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) =>
-                        setUser({ ...user, photo: event.target.result });
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full text-sm"
-                />
-              </div>
+              <input
+                className="w-full p-2 mb-2 rounded bg-gray-100 dark:bg-gray-700"
+                placeholder="Name"
+                value={user.name}
+                onChange={(e) =>
+                  setUser((prev) => ({ ...prev, name: e.target.value }))
+                }
+              />
+              <input
+                className="w-full p-2 mb-2 rounded bg-gray-100 dark:bg-gray-700"
+                placeholder="Email"
+                value={user.email}
+                onChange={(e) =>
+                  setUser((prev) => ({ ...prev, email: e.target.value }))
+                }
+              />
+              <input
+                type="file"
+                className="mb-2 w-full text-sm"
+                onChange={handleFile}
+              />
 
               <div className="flex justify-between">
                 <button
-                  onClick={() => {
-                    localStorage.setItem("userName", user.name);
-                    localStorage.setItem("userEmail", user.email);
-                    localStorage.setItem("userPassword", user.password);
-                    localStorage.setItem("userPhoto", user.photo);
-                    alert("✅ User info updated!");
-                  }}
-                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white transition"
+                  onClick={saveUser}
+                  className="px-3 py-1 bg-green-600 rounded text-white"
                 >
                   Save
                 </button>
                 <button
-                  onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white transition"
+                  onClick={() => navigate("/login")}
+                  className="px-3 py-1 bg-red-600 rounded text-white"
                 >
                   Logout
                 </button>
@@ -517,95 +265,83 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </div>
 
-      <div className="flex-1 p-8 space-y-6 overflow-y-auto">
-        <h1 className="text-3xl font-bold">{activePage}</h1>
+        <h1 className="text-3xl font-bold mb-6">{page}</h1>
 
-        {activePage === "Dashboard" && (
+        {page === "Dashboard" && (
           <>
             <div className="grid grid-cols-3 gap-6">
-              <div className="p-6 rounded-lg shadow-lg bg-gradient-to-r from-blue-700 to-violet-700">
-                <h2 className="text-xl font-semibold mb-2">Balance</h2>
-                <p className="text-2xl font-bold">
-                  ₹{(totalIncome - totalExpense).toLocaleString("en-IN")}
-                </p>
-              </div>
-
-              <div className="p-6 rounded-lg shadow-lg bg-gradient-to-r from-blue-700 to-violet-700">
-                <h2 className="text-xl font-semibold mb-2">30-Day Limit</h2>
-                <div className="w-full bg-gray-800 h-4 rounded-full">
-                  <div
-                    className="bg-green-400 h-4 rounded-full"
-                    style={{
-                      width: `${((totalLimit - usedBalance) / totalLimit) * 100}%`,
-                    }}
-                  ></div>
+              <div className="p-6 rounded bg-gradient-to-r from-blue-700 to-violet-700">
+                <div className="text-sm">Balance</div>
+                <div className="text-2xl font-bold">
+                  ₹{balance.toLocaleString("en-IN")}
                 </div>
-                <p className="mt-2 text-sm">
-                  {totalLimit - usedBalance} remaining
-                </p>
+                <div className="mt-2 text-xs opacity-80">
+                  From incomes and expenses
+                </div>
               </div>
 
-              <div className="p-6 rounded-lg shadow-lg bg-gradient-to-r from-blue-700 to-violet-700">
-                <h2 className="text-xl font-semibold mb-2">Upcoming Bills</h2>
+              <div className="p-6 rounded bg-gradient-to-r from-blue-700 to-violet-700">
+                <div className="text-sm">30-Day Limit</div>
+                <div className="w-full bg-gray-800 h-3 rounded mt-2">
+                  <div
+                    className="h-3 rounded bg-green-400"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        ((totalLimit - usedBalance) / totalLimit) * 100
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-2 text-xs opacity-80">
+                  {totalLimit - usedBalance} remaining
+                </div>
+              </div>
 
-                <p className="text-xs mb-2 opacity-90">
-                  This week:{" "}
-                  <span className="font-semibold">
-                    ₹{totalDueWeek.toLocaleString("en-IN")}
-                  </span>{" "}
-                  • This month:{" "}
-                  <span className="font-semibold">
-                    ₹{totalDueMonth.toLocaleString("en-IN")}
-                  </span>
-                </p>
+              <div className="p-6 rounded bg-gradient-to-r from-blue-700 to-violet-700">
+                <div className="text-sm">Upcoming Bills</div>
+                <div className="text-xs opacity-80 mt-1">
+                  This week: ₹{dueThisWeek.toLocaleString("en-IN")} • This
+                  month: ₹{dueThisMonth.toLocaleString("en-IN")}
+                </div>
 
-                {upcomingBills.length === 0 ? (
-                  <p className="text-sm text-gray-100">
-                    No upcoming bills. 🎉
-                  </p>
+                {upcoming.length === 0 ? (
+                  <div className="mt-4 text-sm">No upcoming bills.</div>
                 ) : (
-                  <ul className="space-y-2">
-                    {upcomingBills.map((bill) => {
-                      const daysLeft = getDaysLeft(bill.dueDate);
-                      let badgeColor = "bg-green-500";
-                      if (daysLeft <= 3) badgeColor = "bg-red-500";
-                      else if (daysLeft <= 7) badgeColor = "bg-yellow-500";
-
+                  <ul className="mt-3 space-y-2">
+                    {upcoming.map((bill) => {
+                      const d = daysLeft(bill.dueDate);
+                      const color =
+                        d <= 3 ? "bg-red-500" : d <= 7 ? "bg-yellow-500" : "bg-green-500";
                       return (
                         <li
                           key={bill.id}
-                          className="flex items-center justify-between border-b border-gray-400/30 pb-1"
+                          className="flex justify-between items-center border-b border-gray-300/40 pb-2"
                         >
-                          <div className="flex flex-col">
-                            <span className="font-medium">{bill.name}</span>
-                            <span className="text-xs text-gray-100">
-                              Due:{" "}
+                          <div>
+                            <div className="font-medium">{bill.name}</div>
+                            <div className="text-xs opacity-80">
+                              Due{" "}
                               {new Date(bill.dueDate).toLocaleDateString(
-                                "en-IN",
-                                {
-                                  day: "2-digit",
-                                  month: "short",
-                                }
+                                "en-IN"
                               )}{" "}
                               • ₹{bill.amount}
-                            </span>
+                            </div>
                           </div>
-
                           <div className="flex items-center gap-2">
                             <span
-                              className={`text-xs px-2 py-1 rounded-full ${badgeColor}`}
+                              className={`text-xs px-2 py-1 rounded ${color}`}
                             >
-                              {daysLeft < 0
+                              {d < 0
                                 ? "Overdue"
-                                : daysLeft === 0
+                                : d === 0
                                 ? "Today"
-                                : `${daysLeft}d left`}
+                                : `${d}d`}
                             </span>
                             <button
-                              onClick={() => handlePaid(bill.id)}
-                              className="text-xs bg-gray-900/60 px-2 py-1 rounded hover:bg-gray-900"
+                              onClick={() => markPaid(bill.id)}
+                              className="px-2 py-1 bg-gray-900 text-white rounded text-xs"
                             >
                               Paid
                             </button>
@@ -616,16 +352,16 @@ export default function Dashboard() {
                   </ul>
                 )}
 
-                <p className="mt-4 text-xs text-gray-100 opacity-80">
-                  Manage all bills in the <strong>Transaction</strong> tab.
-                </p>
+                <div className="mt-3 text-xs opacity-80">
+                  Manage all bills in the Transaction tab.
+                </div>
               </div>
             </div>
 
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
-              <h2 className="text-xl font-semibold mb-4">Income vs Expense</h2>
-              {pieData.some((d) => d.value > 0) ? (
-                <div style={{ width: "100%", height: 300 }}>
+            <div className="mt-8 bg-gray-800 p-6 rounded">
+              <div className="text-lg mb-3">Income vs Expense</div>
+              {pieData.some((p) => p.value > 0) ? (
+                <div style={{ height: 300 }}>
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie
@@ -634,41 +370,34 @@ export default function Dashboard() {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        outerRadius={100}
+                        outerRadius={90}
                         label
                       >
                         {pieData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
+                          <Cell key={index} fill={colors[index]} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value) =>
-                          `₹ ${value.toLocaleString("en-IN")}`
-                        }
-                      />
+                      <Tooltip formatter={(v) => `₹ ${v}`} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <p className="text-gray-400 italic">
-                  Add some income or expense to see chart 📊
-                </p>
+                <div className="italic text-sm">
+                  Add income or expense to view chart.
+                </div>
               )}
             </div>
           </>
         )}
 
-        {activePage === "Income" && <Income />}
-        {activePage === "Expense" && <Expense />}
-        {activePage === "Balance" && <Balance />}
-        {activePage === "Transaction" && (
-          <ManageBills bills={bills} setBills={setBills} darkMode={darkMode} />
+        {page === "Income" && <Income />}
+        {page === "Expense" && <Expense />}
+        {page === "Balance" && <Balance dark={dark} />}
+        {page === "Transaction" && (
+          <Transaction bills={bills} setBills={setBills} dark={dark} />
         )}
-      </div>
+      </main>
     </div>
   );
 }
